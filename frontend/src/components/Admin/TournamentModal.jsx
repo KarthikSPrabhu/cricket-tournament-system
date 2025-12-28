@@ -1,396 +1,361 @@
 import React, { useState, useEffect } from 'react';
-import { FaTimes, FaCalendarAlt } from 'react-icons/fa';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
+import { toast } from 'react-hot-toast';
+import { useTeams } from '../../hooks/useTeams';
 
-const TournamentModal = ({ tournament, onClose, onSave }) => {
+const TournamentModal = ({ isOpen, onClose, onSubmit, initialData, isEdit }) => {
   const [formData, setFormData] = useState({
     name: '',
-    tournamentId: '',
-    season: new Date().getFullYear().toString(),
+    format: 'league',
     startDate: new Date(),
-    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-    format: 'T20',
-    totalOvers: 20,
-    maxPlayersPerTeam: 15,
-    status: 'upcoming'
+    endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    teams: [],
+    description: '',
+    prizeMoney: '',
+    rules: '',
+    logo: null
   });
-  
-  const [errors, setErrors] = useState({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const formatOptions = [
-    { value: 'T20', label: 'T20 (20 Overs)' },
-    { value: 'ODI', label: 'ODI (50 Overs)' },
-    { value: 'Test', label: 'Test Match' },
-    { value: 'Custom', label: 'Custom Format' }
-  ];
-
-  const statusOptions = [
-    { value: 'upcoming', label: 'Upcoming' },
-    { value: 'ongoing', label: 'Ongoing' },
-    { value: 'completed', label: 'Completed' },
-    { value: 'cancelled', label: 'Cancelled' }
-  ];
+  const [logoPreview, setLogoPreview] = useState(null);
+  const { teams, loading: teamsLoading } = useTeams();
 
   useEffect(() => {
-    if (tournament) {
+    if (isEdit && initialData) {
       setFormData({
-        name: tournament.name || '',
-        tournamentId: tournament.tournamentId || '',
-        season: tournament.season || new Date().getFullYear().toString(),
-        startDate: new Date(tournament.startDate) || new Date(),
-        endDate: new Date(tournament.endDate) || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        format: tournament.format || 'T20',
-        totalOvers: tournament.totalOvers || 20,
-        maxPlayersPerTeam: tournament.maxPlayersPerTeam || 15,
-        status: tournament.status || 'upcoming'
+        name: initialData.name || '',
+        format: initialData.format || 'league',
+        startDate: initialData.startDate ? new Date(initialData.startDate) : new Date(),
+        endDate: initialData.endDate ? new Date(initialData.endDate) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        teams: initialData.teams?.map(t => t._id || t) || [],
+        description: initialData.description || '',
+        prizeMoney: initialData.prizeMoney || '',
+        rules: initialData.rules || '',
+        logo: null
       });
+      if (initialData.logo) {
+        setLogoPreview(initialData.logo);
+      }
+    } else {
+      resetForm();
     }
-  }, [tournament]);
+  }, [isEdit, initialData, isOpen]);
 
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!formData.name.trim()) {
-      newErrors.name = 'Tournament name is required';
-    }
-    
-    if (!formData.tournamentId.trim()) {
-      newErrors.tournamentId = 'Tournament ID is required';
-    } else if (!/^[A-Z0-9]+$/.test(formData.tournamentId)) {
-      newErrors.tournamentId = 'Tournament ID should contain only uppercase letters and numbers';
-    }
-    
-    if (!formData.season.trim()) {
-      newErrors.season = 'Season is required';
-    }
-    
-    if (formData.endDate <= formData.startDate) {
-      newErrors.endDate = 'End date must be after start date';
-    }
-    
-    if (formData.startDate < new Date()) {
-      newErrors.startDate = 'Start date cannot be in the past';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      format: 'league',
+      startDate: new Date(),
+      endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      teams: [],
+      description: '',
+      prizeMoney: '',
+      rules: '',
+      logo: null
+    });
+    setLogoPreview(null);
   };
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value, type } = e.target;
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    
-    // Clear error when field is modified
-    if (errors[name]) {
-      setErrors(prev => ({
-        ...prev,
-        [name]: ''
-      }));
+    if (type === 'select-multiple') {
+      const selectedOptions = Array.from(e.target.selectedOptions, option => option.value);
+      setFormData(prev => ({ ...prev, [name]: selectedOptions }));
+    } else if (type === 'checkbox') {
+      setFormData(prev => ({ ...prev, [name]: e.target.checked }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleDateChange = (date, field) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: date
-    }));
-    
-    // Clear error when date is modified
-    if (errors[field]) {
-      setErrors(prev => ({
-        ...prev,
-        [field]: ''
-      }));
+  const handleDateChange = (name, date) => {
+    setFormData(prev => ({ ...prev, [name]: date }));
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('File size should be less than 5MB');
+        return;
+      }
+      setFormData(prev => ({ ...prev, logo: file }));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     
-    if (!validateForm()) {
+    // Validation
+    if (!formData.name.trim()) {
+      toast.error('Tournament name is required');
       return;
     }
     
-    setIsSubmitting(true);
-    try {
-      const dataToSave = {
-        ...formData,
-        startDate: formData.startDate.toISOString(),
-        endDate: formData.endDate.toISOString()
-      };
-      
-      await onSave(dataToSave);
-    } catch (error) {
-      console.error('Error saving tournament:', error);
-    } finally {
-      setIsSubmitting(false);
+    if (!formData.startDate || !formData.endDate) {
+      toast.error('Start and end dates are required');
+      return;
     }
+    
+    if (formData.startDate > formData.endDate) {
+      toast.error('End date must be after start date');
+      return;
+    }
+    
+    if (formData.teams.length < 2) {
+      toast.error('Select at least 2 teams');
+      return;
+    }
+
+    const submitData = new FormData();
+    Object.keys(formData).forEach(key => {
+      if (key === 'startDate' || key === 'endDate') {
+        submitData.append(key, formData[key].toISOString());
+      } else if (key === 'teams') {
+        formData[key].forEach((teamId, index) => {
+          submitData.append(`teams[${index}]`, teamId);
+        });
+      } else if (formData[key] !== null && formData[key] !== undefined) {
+        submitData.append(key, formData[key]);
+      }
+    });
+
+    onSubmit(submitData);
+    resetForm();
   };
 
-  const generateTournamentId = () => {
-    const name = formData.name.trim();
-    if (name) {
-      const words = name.split(' ');
-      const initials = words.map(word => word.charAt(0).toUpperCase()).join('');
-      const season = formData.season.slice(-2);
-      const tournamentId = `${initials}${season}`;
-      
-      setFormData(prev => ({
-        ...prev,
-        tournamentId
-      }));
-    }
-  };
+  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold text-gray-800">
-              {tournament ? 'Edit Tournament' : 'Create New Tournament'}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-gray-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        {/* Header */}
+        <div className="sticky top-0 bg-gray-800 p-6 border-b border-gray-700">
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-bold text-white">
+              {isEdit ? 'Edit Tournament' : 'Create New Tournament'}
             </h2>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-gray-100 rounded-lg"
+              className="text-gray-400 hover:text-white text-2xl"
             >
-              <FaTimes className="text-gray-500" />
+              ×
             </button>
           </div>
+        </div>
 
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-6">
-              {/* Basic Information */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Tournament Name *
-                    </label>
-                    <button
-                      type="button"
-                      onClick={generateTournamentId}
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      Generate ID
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.name ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="e.g., Indian Premier League"
-                  />
-                  {errors.name && (
-                    <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tournament ID *
-                  </label>
-                  <input
-                    type="text"
-                    name="tournamentId"
-                    value={formData.tournamentId}
-                    onChange={handleChange}
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.tournamentId ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="e.g., IPL2024"
-                    style={{ textTransform: 'uppercase' }}
-                  />
-                  {errors.tournamentId && (
-                    <p className="mt-1 text-sm text-red-600">{errors.tournamentId}</p>
-                  )}
-                </div>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-4">
+              {/* Tournament Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Tournament Name *
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  placeholder="Enter tournament name"
+                  required
+                />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Season *
-                  </label>
-                  <input
-                    type="text"
-                    name="season"
-                    value={formData.season}
-                    onChange={handleChange}
-                    className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                      errors.season ? 'border-red-300' : 'border-gray-300'
-                    }`}
-                    placeholder="e.g., 2024"
-                  />
-                  {errors.season && (
-                    <p className="mt-1 text-sm text-red-600">{errors.season}</p>
-                  )}
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Status
-                  </label>
-                  <select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {statusOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              {/* Format */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Format *
+                </label>
+                <select
+                  name="format"
+                  value={formData.format}
+                  onChange={handleChange}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  required
+                >
+                  <option value="league">League</option>
+                  <option value="knockout">Knockout</option>
+                  <option value="league_knockout">League + Knockout</option>
+                </select>
               </div>
 
               {/* Dates */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     Start Date *
                   </label>
-                  <div className="relative">
-                    <DatePicker
-                      selected={formData.startDate}
-                      onChange={(date) => handleDateChange(date, 'startDate')}
-                      minDate={new Date()}
-                      className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.startDate ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      dateFormat="dd/MM/yyyy"
-                    />
-                    <FaCalendarAlt className="absolute right-3 top-3 text-gray-400" />
-                  </div>
-                  {errors.startDate && (
-                    <p className="mt-1 text-sm text-red-600">{errors.startDate}</p>
-                  )}
+                  <DatePicker
+                    selected={formData.startDate}
+                    onChange={(date) => handleDateChange('startDate', date)}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    dateFormat="MMMM d, yyyy"
+                    minDate={new Date()}
+                  />
                 </div>
-                
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                     End Date *
                   </label>
-                  <div className="relative">
-                    <DatePicker
-                      selected={formData.endDate}
-                      onChange={(date) => handleDateChange(date, 'endDate')}
-                      minDate={formData.startDate}
-                      className={`w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                        errors.endDate ? 'border-red-300' : 'border-gray-300'
-                      }`}
-                      dateFormat="dd/MM/yyyy"
-                    />
-                    <FaCalendarAlt className="absolute right-3 top-3 text-gray-400" />
-                  </div>
-                  {errors.endDate && (
-                    <p className="mt-1 text-sm text-red-600">{errors.endDate}</p>
-                  )}
+                  <DatePicker
+                    selected={formData.endDate}
+                    onChange={(date) => handleDateChange('endDate', date)}
+                    className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                    dateFormat="MMMM d, yyyy"
+                    minDate={formData.startDate}
+                  />
                 </div>
               </div>
 
-              {/* Format and Settings */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Match Format *
-                  </label>
-                  <select
-                    name="format"
-                    value={formData.format}
-                    onChange={handleChange}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    {formatOptions.map(option => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                
-                {formData.format !== 'Test' && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Overs per Inning
-                    </label>
-                    <input
-                      type="number"
-                      name="totalOvers"
-                      value={formData.totalOvers}
-                      onChange={handleChange}
-                      min="1"
-                      max="50"
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
-                  </div>
-                )}
-              </div>
-
+              {/* Teams Selection */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Max Players per Team
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Select Teams * (Min: 2)
                 </label>
-                <input
-                  type="number"
-                  name="maxPlayersPerTeam"
-                  value={formData.maxPlayersPerTeam}
+                <select
+                  name="teams"
+                  multiple
+                  value={formData.teams}
                   onChange={handleChange}
-                  min="11"
-                  max="20"
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-                <p className="mt-1 text-sm text-gray-500">
-                  Minimum 11 players required per team, maximum 20 allowed
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500 min-h-32"
+                  required
+                >
+                  {teamsLoading ? (
+                    <option disabled>Loading teams...</option>
+                  ) : (
+                    teams.map(team => (
+                      <option key={team._id} value={team._id}>
+                        {team.name} ({team.shortName})
+                      </option>
+                    ))
+                  )}
+                </select>
+                <p className="text-xs text-gray-400 mt-2">
+                  Hold Ctrl/Cmd to select multiple teams
+                </p>
+                <p className="text-sm text-gray-300 mt-1">
+                  Selected: {formData.teams.length} teams
                 </p>
               </div>
             </div>
 
-            <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end space-x-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                disabled={isSubmitting}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`px-6 py-3 rounded-lg text-white ${
-                  isSubmitting
-                    ? 'bg-blue-400 cursor-not-allowed'
-                    : 'bg-blue-600 hover:bg-blue-700'
-                }`}
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Saving...
-                  </>
-                ) : (
-                  tournament ? 'Update Tournament' : 'Create Tournament'
-                )}
-              </button>
+            {/* Right Column */}
+            <div className="space-y-4">
+              {/* Prize Money */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Prize Money
+                </label>
+                <input
+                  type="text"
+                  name="prizeMoney"
+                  value={formData.prizeMoney}
+                  onChange={handleChange}
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  placeholder="E.g., $1,000,000"
+                />
+              </div>
+
+              {/* Logo Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Tournament Logo
+                </label>
+                <div className="flex items-center space-x-4">
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-lg border-2 border-dashed border-gray-600 flex items-center justify-center overflow-hidden bg-gray-900">
+                      {logoPreview ? (
+                        <img
+                          src={logoPreview}
+                          alt="Logo preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-gray-500">Logo</span>
+                      )}
+                    </div>
+                    <label className="absolute -bottom-2 -right-2 bg-yellow-600 text-white rounded-full p-2 cursor-pointer hover:bg-yellow-700">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-400">
+                      Upload tournament logo (max 5MB)
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Recommended: 300x300px PNG/JPG
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Description
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows="3"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  placeholder="Enter tournament description"
+                />
+              </div>
+
+              {/* Rules */}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Rules & Regulations
+                </label>
+                <textarea
+                  name="rules"
+                  value={formData.rules}
+                  onChange={handleChange}
+                  rows="3"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                  placeholder="Enter tournament rules"
+                />
+              </div>
             </div>
-          </form>
-        </div>
+          </div>
+
+          {/* Footer Buttons */}
+          <div className="flex justify-end space-x-4 pt-6 border-t border-gray-700">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-2 border border-gray-600 text-gray-300 rounded-lg hover:bg-gray-700 transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition"
+            >
+              {isEdit ? 'Update Tournament' : 'Create Tournament'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );
