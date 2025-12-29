@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { useMatch } from '../../context/MatchContext';
 import { 
-  FaCricketBall, 
+  FaBaseballBall, 
   FaUsers, 
   FaChartLine,
   FaArrowRight,

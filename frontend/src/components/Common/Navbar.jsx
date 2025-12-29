@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { CgCricket } from 'react-icons/cg';
+// Choose one of these cricket/sports icons:
+import { MdSportsCricket } from 'react-icons/md';  // ✓ Good cricket icon
+// import { GiCricketBat } from 'react-icons/gi';   // ✓ Cricket bat icon
+// import { FaCricket } from 'react-icons/fa';      // ✓ Another cricket icon
 import { HiMenu, HiX } from 'react-icons/hi';
 
 const Navbar = ({ isAdmin }) => {
@@ -40,7 +43,8 @@ const Navbar = ({ isAdmin }) => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to={isAdmin ? '/admin/dashboard' : '/'} className="flex items-center space-x-2">
-              <CgCricket className="h-8 w-8 text-yellow-500" />
+              {/* Updated icon */}
+              <MdSportsCricket className="h-8 w-8 text-yellow-500" />
               <span className="text-xl font-bold">CricketPro</span>
             </Link>
           </div>

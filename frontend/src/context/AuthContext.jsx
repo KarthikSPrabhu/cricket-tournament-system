@@ -3,8 +3,10 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
-const AuthContext = createContext({});
+// Create context
+export const AuthContext = createContext({});  // Add export here
 
+// Custom hook to use auth context
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {

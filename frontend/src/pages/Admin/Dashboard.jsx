@@ -6,9 +6,9 @@ import {
   FaTrophy,
   FaCalendarAlt,
   FaChartLine,
-  FaCricketBall,
   FaUserPlus,
-  FaTeam
+  FaUserFriends, // Use FaUserFriends instead of FaTeam
+  FaBaseballBall // Use this instead of FaCricketBall
 } from 'react-icons/fa';
 import {
   BarChart,
@@ -90,7 +90,7 @@ const AdminDashboard = () => {
     {
       title: 'Total Teams',
       value: stats.totalTeams,
-      icon: <FaTeam className="text-3xl" />,
+      icon: <FaUserFriends className="text-3xl" />, // Changed from FaTeam
       color: 'bg-blue-500',
       link: '/admin/teams'
     },
@@ -118,7 +118,7 @@ const AdminDashboard = () => {
     {
       title: 'Live Matches',
       value: stats.liveMatches,
-      icon: <FaCricketBall className="text-3xl" />,
+      icon: <FaBaseballBall className="text-3xl" />,
       color: 'bg-red-500',
       link: '#'
     },
@@ -343,7 +343,7 @@ const AdminDashboard = () => {
                 >
                   <div className="flex items-center">
                     <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
-                      <FaTeam className="text-white" />
+                      <FaUserFriends className="text-white" /> {/* Updated */}
                     </div>
                     <div className="ml-4">
                       <h4 className="font-medium">Create Team</h4>

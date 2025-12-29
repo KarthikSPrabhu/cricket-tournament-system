@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useMatch } from '../../context/MatchContext';
 import axios from 'axios';
 import {
-  FaCricketBall,
+  FaBaseballBall, // Changed from FaCricketBall
   FaTrophy,
   FaUsers,
   FaChartLine,
@@ -83,7 +83,7 @@ const Home = () => {
     {
       title: 'Total Players',
       value: stats.totalPlayers,
-      icon: <FaCricketBall className="text-3xl" />,
+      icon: <FaBaseballBall className="text-3xl" />, // Changed
       color: 'from-green-500 to-emerald-500',
       delay: 0.3
     },

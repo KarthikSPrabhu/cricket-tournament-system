@@ -1,6 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { CgCricket } from 'react-icons/cg';
+// Choose one of these cricket icons:
+import { MdSportsCricket } from 'react-icons/md';  // Material Design cricket icon
+// import { GiCricketBat } from 'react-icons/gi';    // Game Icons bat
+// import { FaCricket } from 'react-icons/fa';       // Font Awesome cricket
 import { FaTwitter, FaFacebook, FaInstagram, FaYoutube } from 'react-icons/fa';
 
 const Footer = () => {
@@ -13,7 +16,8 @@ const Footer = () => {
           {/* Logo and Description */}
           <div>
             <Link to="/" className="flex items-center space-x-2">
-              <CgCricket className="h-8 w-8 text-yellow-500" />
+              {/* Updated icon */}
+              <MdSportsCricket className="h-8 w-8 text-yellow-500" />
               <span className="text-xl font-bold">CricketPro</span>
             </Link>
             <p className="mt-4 text-gray-400">

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import "react-datepicker/dist/react-datepicker.css";
 import { toast } from 'react-hot-toast';
-import { useTeams } from '../../hooks/useTeams';
+import useTeams from '../../hooks/useTeams';
 
 const TournamentModal = ({ isOpen, onClose, onSubmit, initialData, isEdit }) => {
   const [formData, setFormData] = useState({
@@ -12,7 +12,7 @@ const TournamentModal = ({ isOpen, onClose, onSubmit, initialData, isEdit }) => 
     endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     teams: [],
     description: '',
-    prizeMoney: '',
+    prizeMoney: '', 
     rules: '',
     logo: null
   });

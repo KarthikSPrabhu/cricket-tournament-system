@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useSocket } from '../../hooks/useSocket';
-import { useTeams } from '../../hooks/useTeams';
-import { usePlayers } from '../../hooks/usePlayers';
+import useSocket from '../../hooks/useSocket';
+import useTeams from '../../hooks/useTeams';
+import usePlayers from '../../hooks/usePlayers';
 import api from '../../services/api';
 import { Spinner } from '../../components/Common/Loader';
 
